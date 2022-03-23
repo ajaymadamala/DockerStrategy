@@ -1,0 +1,169 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "create-quarkus-template",
+    "annotations": {
+      "description": "This example shows how to create a simple template in openshift 3.11",
+      "tags": "Quarkus"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "my-quarkus"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 8080,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "my-quarkus"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+        "kind": "Route",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "my-quarkus"
+        },
+        "spec": {
+          "to": {
+            "kind": "Service",
+            "name": "my-quarkus"
+          },
+          "tls": {
+            "termination": "edge"
+          }
+        }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "my-quarkus"
+      },
+      "spec": {
+        "dockerImageRepository": "edwinkun/my-quarkus"
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+        "kind": "DeploymentConfig",
+        "apiVersion": "v1",
+        "metadata": {
+          "name": "my-quarkus",
+          "annotations": {
+            "template.alpha.openshift.io/wait-for-ready": "true"
+          }
+        },
+        "spec": {
+          "strategy": {
+            "type": "Rolling",
+            "rollingParams": {
+              "updatePeriodSeconds": 1,
+              "intervalSeconds": 1,
+              "timeoutSeconds": 120,
+              "pre": {
+                "failurePolicy": "Abort",
+                "execNewPod": {
+                  "command": [
+                    "/bin/true"
+                  ],
+                  "env": [
+                  ],
+                  "containerName": "my-quarkus"
+                }
+              },
+              "post": {
+                "failurePolicy": "Ignore",
+                "execNewPod": {
+                  "command": [
+                    "/bin/true"
+                  ],
+                  "env": [
+                  ],
+                  "containerName": "my-quarkus"
+                }
+              }
+            },
+            "resources": {}
+          },
+          "triggers": [
+            {
+              "type": "ImageChange",
+              "imageChangeParams": {
+                "automatic": true,
+                "containerNames": [
+                  "my-quarkus"
+                ],
+                "from": {
+                  "kind": "ImageStreamTag",
+                  "name": "my-quarkus:latest"
+                }
+              }
+            },
+            {
+              "type": "ConfigChange"
+            }
+          ],
+          "replicas": 3,
+          "selector": {
+            "name": "my-quarkus"
+          },
+          "template": {
+            "metadata": {
+              "labels": {
+                "name": "my-quarkus"
+              }
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "my-quarkus",
+                  "image": "my-quarkus",
+                  "ports": [
+                    {
+                      "containerPort": 8080,
+                      "protocol": "TCP"
+                    }
+                  ],
+                  "env": [
+                  ],
+                  "resources": {},
+                  "terminationMessagePath": "/dev/termination-log",
+                  "imagePullPolicy": "IfNotPresent",
+                  "securityContext": {
+                    "capabilities": {},
+                    "privileged": false
+                  }
+                }
+              ],
+              "restartPolicy": "Always",
+              "dnsPolicy": "ClusterFirst"
+            }
+          }
+        },
+        "status": {}
+      }
+  ],
+  "labels": {
+    "template": "my-quarkus-dockerbuild"
+  }
+}
